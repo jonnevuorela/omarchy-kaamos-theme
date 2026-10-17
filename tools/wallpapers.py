@@ -100,34 +100,32 @@ def aurora():
 
 def tunturi():
     g = blank()
-    stars(g, 620, 15, seed=11)
-    # layered fells: flowing box-drawing crests over a light mist, tall and
-    # wide so they span the whole 16:9 frame rather than a narrow band.
-    layers = [
-        (14, 9.0, [(0.017, 0.0, 1.0), (0.041, 1.7, 0.5), (0.09, 0.6, 0.25)], (44, 52, 118), (12, 14, 32), (96, 106, 192), 5, 0.50),
-        (25, 8.5, [(0.023, 2.3, 1.0), (0.052, 0.4, 0.5), (0.10, 1.9, 0.28)], (34, 40, 94), (10, 12, 28), (120, 130, 208), 4, 0.45),
-        (36, 8.0, [(0.030, 4.0, 1.0), (0.065, 2.1, 0.45), (0.13, 0.2, 0.22)], (23, 27, 60), (0, 0, 0), (154, 164, 230), 4, 0.40),
-    ]
-    for base, amp, waves, top, bot, rim, mist_rows, mist_str in layers:
-        prof = [max(1, min(ROWS - 2, int(round(base - amp * sum(a * math.sin(x * f + p) for f, p, a in waves))))) for x in range(COLS)]
+    stars(g, 640, 22, seed=11)
+    for base, amp, freq, phase, top, bot, rim in [
+        (24, 9.0, 0.020, 0.0, (46, 54, 120), (10, 12, 28), (140, 150, 225)),
+        (30, 7.5, 0.028, 1.6, (34, 40, 94), (8, 10, 22), (185, 195, 245)),
+        (37, 6.5, 0.037, 3.1, (26, 30, 66), (0, 0, 0), (238, 242, 255)),
+    ]:
+        prof = []
         for x in range(COLS):
-            for k in range(1, mist_rows + 1):
-                y = prof[x] - k
-                if y < 0:
-                    break
-                i = mist_str * (1 - k / (mist_rows + 1)) * (0.75 + 0.25 * math.sin(x * 0.3 + k * 0.7))
-                if i < 0.05 or g[y][x][0] != " ":
-                    continue
-                g[y][x] = (RAMP[1] if i < 0.3 else RAMP[2], lerp((14, 16, 38), (0, 0, 0), 1 - i))
+            h = amp * abs(math.sin(x * freq + phase)) + 0.55 * amp * abs(math.sin(x * freq * 2.3 + phase + 1.1))
+            prof.append(int(base - h))
         for x in range(COLS):
             a = prof[x]
             b = prof[x + 1] if x + 1 < COLS else a
-            slope = b - a
-            ch = "\u2571" if slope < 0 else ("\u2572" if slope > 0 else "\u2500")
+            apex = prof[x - 1] if x > 0 else a
+            if b < a and a <= apex:
+                ch = "^"
+            elif b < a:
+                ch = "/"
+            elif b > a:
+                ch = "\\"
+            else:
+                ch = "^"
             g[a][x] = (ch, rim)
             for y in range(a + 1, ROWS):
-                t = min(1.0, (y - a) / max(1, ROWS - a) * 1.8)
-                g[y][x] = (RAMP[2] if t < 0.25 else RAMP[1], lerp(top, bot, t))
+                t = min(1.0, (y - a) / max(1, ROWS - a) * 1.7)
+                g[y][x] = (RAMP[3] if t < 0.2 else (RAMP[2] if t < 0.5 else RAMP[1]), lerp(top, bot, t))
     draw_grid(g, "3-tunturi.png")
 
 
