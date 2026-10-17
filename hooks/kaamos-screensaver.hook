@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Kaamos theme hook: apply the arctic arch screensaver art when Kaamos is set,
+# and restore the stock Omarchy wordmark when switching to any other theme.
+#
+# Install with:
+#   omarchy hook install theme-set hooks/kaamos-screensaver.hook
+
+set -euo pipefail
+
+THEME_NAME="${1:-}"
+OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
+BRANDING="$HOME/.config/omarchy/branding/screensaver.txt"
+THEME_SCREENSAVER="$HOME/.local/state/omarchy/current/theme/screensaver.txt"
+MARKER="$HOME/.local/state/omarchy/kaamos-screensaver.hook"
+
+mkdir -p "$(dirname "$BRANDING")" "$(dirname "$MARKER")"
+
+if [[ $THEME_NAME == "kaamos" ]]; then
+  [[ -f $THEME_SCREENSAVER ]] || exit 0
+  cp -- "$THEME_SCREENSAVER" "$BRANDING"
+  touch "$MARKER"
+elif [[ -f $MARKER ]]; then
+  cp -- "$OMARCHY_PATH/logo.txt" "$BRANDING"
+  rm -f "$MARKER"
+fi

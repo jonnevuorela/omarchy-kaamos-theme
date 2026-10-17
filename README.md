@@ -39,11 +39,18 @@ The shortcut for switching wallpapers is <kbd>Ctrl</kbd>+<kbd>Super</kbd>+<kbd>S
 ## Screensaver
 
 This theme ships the arctic arch `screensaver.txt`. Omarchy branding is global
-rather than per-theme, so apply it once, by hand:
+rather than per-theme, so apply it once by hand:
 
 ```bash
 cp screensaver.txt ~/.config/omarchy/branding/screensaver.txt
 omarchy-launch-screensaver force    # preview it
+```
+
+Or install the bundled hook to do it automatically whenever Kaamos is selected
+(and restore the stock wordmark when you switch away):
+
+```bash
+omarchy hook install theme-set hooks/kaamos-screensaver.hook
 ```
 
 Use `omarchy branding screensaver reset` to restore the stock wordmark.
@@ -51,7 +58,7 @@ Use `omarchy branding screensaver reset` to restore the stock wordmark.
 ## Installation
 
 ```bash
-omarchy theme install https://github.com/yourname/omarchy-kaamos-theme.git
+omarchy theme install https://github.com/jonnevuorela/omarchy-kaamos-theme.git
 ```
 
 ## Usage
