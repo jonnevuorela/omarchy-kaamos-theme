@@ -1,13 +1,13 @@
 # Omarchy Kaamos Theme
 
-**Kaamos** — Finnish for *polar night* — a pure-black theme for DHH's
+**Kaamos** - Finnish for *polar night* - a pure-black theme for DHH's
 [Omarchy](https://omarchy.org), an opinionated Arch Linux setup, made for the
 inky blacks an OLED monitor craves and lit by a cold, aurora-blue accent.
 
 ## Palette
 
-- **Background** — pure black `#000000`
-- **Accent** — `#4F5BD5`, a dark royal blue that leans almost purple: cold and
+- **Background** pure black `#000000`
+- **Accent** `#4F5BD5`, a dark royal blue that leans almost purple: cold and
   frosty, but still blue, lit like an aurora
 
 ## Preview
