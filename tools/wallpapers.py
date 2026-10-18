@@ -16,9 +16,6 @@ DIM = (34, 38, 70)
 ROWS = 46
 COLS = round(ROWS * (16 / 9) / 0.4996)  # cell aspect so the grid is true 16:9
 
-BOX = {(1, 0): "\u2500", (-1, 0): "\u2500", (0, 1): "\u2502", (0, -1): "\u2502",
-       (1, 1): "\u2572", (-1, -1): "\u2572", (1, -1): "\u2571", (-1, 1): "\u2571"}
-
 
 def lerp(a, b, t):
     t = max(0.0, min(1.0, t))
@@ -134,68 +131,112 @@ def tunturi():
     draw_grid(g, "3-tunturi.png")
 
 
-def seg(g, c1, r1, c2, r2, guide=False, color=None):
-    n = max(abs(c2 - c1), abs(r2 - r1))
-    if n == 0:
-        return
-    for i in range(1, n):
-        c = round(c1 + (c2 - c1) * i / n)
-        r = round(r1 + (r2 - r1) * i / n)
-        if g[r][c][0] not in (" ", ".", "+", "*"):
-            continue
-        if guide and i % 3:
-            continue
-        pc = round(c1 + (c2 - c1) * (i - 1) / n)
-        pr = round(r1 + (r2 - r1) * (i - 1) / n)
-        dc = 0 if c == pc else (1 if c2 > c1 else -1)
-        dr = 0 if r == pr else (1 if r2 > r1 else -1)
-        ch = BOX.get((dc, dr), "\u00b7")
-        g[r][c] = (ch, color or lerp(DIM, FROST, 0.35 if guide else 0.62))
+def rect(g, c1, r1, c2, r2, fill_ch, fill_col, edge_col=None):
+    for y in range(r1, r2 + 1):
+        for x in range(c1, c2 + 1):
+            if edge_col is not None and (y in (r1, r2) or x in (c1, c2)):
+                put(g, y, x, "\u2500" if y in (r1, r2) else "\u2502", edge_col)
+            else:
+                put(g, y, x, fill_ch, fill_col)
 
 
-def hero(g, c, r, color=FROST):
-    for dc, dr in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
-        put(g, r + dr, c + dc, "*", color)
-    for dc, dr in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
-        if g[r + dr][c + dc][0] in (" ", ".", "+"):
-            g[r + dr][c + dc] = ("\u00b7", lerp(DIM, MID, 0.55))
+def spruce(g, cx, base, height):
+    # snow-laden conifer: widest at the base, frost-white branch edges
+    for i in range(height + 1):
+        y = base - i
+        hw = int((height - i) * 0.42)
+        for dx in range(-hw, hw + 1):
+            put(g, y, cx + dx, "\u2593", (26, 30, 54))
+        if hw >= 1:
+            put(g, y, cx - hw, "*", (150, 160, 205))
+            put(g, y, cx + hw, "*", (150, 160, 205))
+    put(g, base - height - 1, cx, "*", (208, 216, 244))
+    put(g, base - height - 2, cx, "*", (208, 216, 244))
+    put(g, base + 1, cx, "\u2502", (58, 64, 92))
+    put(g, base + 2, cx, "\u2502", (58, 64, 92))
 
 
-def hero_big(g, c, r):
-    for k in range(1, 4):
-        for dc, dr in [(-k, 0), (k, 0), (0, -k), (0, k)]:
-            put(g, r + dr, c + dc, "*" if k < 3 else "+", lerp(FROST, MID, 0.25 if k < 3 else 0.6))
-    for dc, dr in [(-1, -1), (1, -1), (-1, 1), (1, 1)]:
-        put(g, r + dr, c + dc, "+", lerp(FROST, MID, 0.5))
-    for k in range(4, 7):
-        for dc, dr in [(-k, 0), (k, 0), (0, -k), (0, k)]:
-            if g[r + dr][c + dc][0] in (" ", ".", "+"):
-                g[r + dr][c + dc] = ("\u00b7", lerp(DIM, FROST, 0.35))
-
-
-def text(g, s, c, r, col):
-    for i, ch in enumerate(s):
-        put(g, r, c + i, ch, (0, 0, 0) if ch == " " else col)
-
-
-def otava():
+def mokki():
     g = blank()
-    stars(g, 720, ROWS, band=(5, 27, 2.4), seed=3)
-    stars(g, 280, ROWS, seed=5)
-    pts = {"A": (34, 31), "B": (48, 32), "C": (52, 23), "D": (38, 22),
-           "E": (64, 29), "F": (78, 27), "G": (92, 24)}
-    pohjan = (122, 9)
-    # barely-there dotted ties so the seven stars read as one figure
-    for a, b in [("A", "B"), ("B", "C"), ("C", "D"), ("D", "A"),
-                 ("B", "E"), ("E", "F"), ("F", "G")]:
-        seg(g, pts[a][0], pts[a][1], pts[b][0], pts[b][1], color=lerp(DIM, MID, 0.7))
-    seg(g, pts["D"][0], pts["D"][1], pohjan[0], pohjan[1], guide=True, color=lerp(DIM, MID, 0.6))
-    for (c, r) in pts.values():
-        hero(g, c, r)
-    hero_big(g, pohjan[0], pohjan[1])
-    text(g, "P O H J A N T \u00c4 H T I", pohjan[0] - 15, pohjan[1] + 4, lerp(FROST, MID, 0.35))
-    text(g, "O T A V A", 40, 36, lerp(FROST, MID, 0.45))
-    draw_grid(g, "4-otava.png")
+    horizon = 33
+    stars(g, 520, horizon + 2, seed=3)
+
+    # smooth snow field, gently drifting
+    hz = [horizon + int(0.9 * math.sin(x * 0.02) + 0.4 * math.sin(x * 0.07 + 1.0)) for x in range(COLS)]
+    for x in range(COLS):
+        for y in range(hz[x], ROWS):
+            t = (y - hz[x]) / max(1, ROWS - hz[x])
+            ch = RAMP[3] if t < 0.10 else (RAMP[2] if t < 0.5 else RAMP[1])
+            put(g, y, x, ch, lerp((92, 100, 142), (9, 11, 24), t))
+
+    spruce(g, 44, 35, 13)
+    spruce(g, 122, 35, 10)
+
+    # cabin
+    c1, c2, r1, r2 = 72, 96, 23, 34
+    rect(g, c1, r1, c2, r2, "\u2588", (17, 20, 40), (98, 108, 160))
+    # snow-covered gable roof
+    peak_c, peak_r = (c1 + c2) // 2, 15
+    for r in range(peak_r, r1):
+        hw = int((r - peak_r) * ((c2 - c1 + 8) / 2) / (r1 - peak_r))
+        for x in range(peak_c - hw, peak_c + hw + 1):
+            edge = abs(x - peak_c) >= hw - 1
+            put(g, r, x, "\u2592" if edge else "\u2591", (206, 214, 240) if edge else (118, 126, 174))
+    # chimney seated on the roof
+    rect(g, 88, 13, 90, 20, "\u2588", (12, 14, 28), (98, 108, 160))
+
+    # lit window + warm halo
+    wx1, wy1, wx2, wy2 = 77, 25, 81, 28
+    for r in range(wy1, wy2 + 1):
+        for x in range(wx1, wx2 + 1):
+            g[r][x] = ("\u2588", (255, 198, 112))
+    # mullions
+    mc, mr = (wx1 + wx2) // 2, (wy1 + wy2) // 2
+    for r in range(wy1, wy2 + 1):
+        g[r][mc] = ("\u2502", (72, 50, 24))
+    for x in range(wx1, wx2 + 1):
+        g[mr][x] = ("\u2500", (72, 50, 24))
+    for r in range(wy1 - 4, wy2 + 5):
+        for x in range(wx1 - 4, wx2 + 5):
+            dx = max(wx1 - x, 0, x - wx2)
+            dy = max(wy1 - r, 0, r - wy2)
+            d = max(dx, dy)
+            if d == 0 or d > 4:
+                continue
+            f = (1 - d / 4.5) * 0.55
+            base = g[r][x]
+            put(g, r, x, base[0] if base[0] != " " else "\u2591", lerp(base[1], (176, 112, 54), f))
+
+    # door
+    rect(g, 86, 30, 89, 34, "\u2588", (10, 11, 22), (92, 100, 150))
+
+    # smoke rising and drifting from the chimney
+    random.seed(21)
+    for k in range(17):
+        y = 11 - k
+        if y < 0:
+            break
+        fade = 1 - k / 17
+        cx = 89 + k * 0.55 + 1.5 * math.sin(k * 0.6)
+        spread = 0.5 + k * 0.22
+        for _ in range(1 + int(k * 0.14)):
+            x = int(round(cx + random.uniform(-spread, spread)))
+            if random.random() < 0.45 + fade * 0.5:
+                ch = random.choice([".", "\u00b7", "o"])
+                put(g, y, x, ch, lerp((14, 16, 28), (104, 112, 140), fade * 0.85))
+
+    # snowfall, in front of everything
+    random.seed(41)
+    for _ in range(620):
+        x = random.randrange(COLS)
+        y = random.randrange(ROWS)
+        if g[y][x][0] != " ":
+            continue
+        t = random.random()
+        ch = "." if t < 0.82 else ("\u00b7" if t < 0.94 else "*")
+        g[y][x] = (ch, lerp((70, 78, 112), (228, 234, 252), 0.3 + 0.6 * t))
+
+    draw_grid(g, "4-mokki.png")
 
 
 def main():
@@ -203,7 +244,7 @@ def main():
     print("wrote 1-black.png")
     aurora()
     tunturi()
-    otava()
+    mokki()
 
 
 if __name__ == "__main__":

@@ -26,13 +26,13 @@ The shortcut for switching wallpapers is <kbd>Ctrl</kbd>+<kbd>Super</kbd>+<kbd>S
     <td>Kaamos Black</td>
     <td>Aurora</td>
     <td>Tunturi</td>
-    <td>Otava</td>
+    <td>Mökki</td>
   </tr>
   <tr>
     <td><img src="backgrounds/1-black.png" width="200" alt="Kaamos Black"></td>
     <td><img src="backgrounds/2-kaamos-aurora.png" width="200" alt="Aurora"></td>
     <td><img src="backgrounds/3-tunturi.png" width="200" alt="Tunturi"></td>
-    <td><img src="backgrounds/4-otava.png" width="200" alt="Otava"></td>
+    <td><img src="backgrounds/4-mokki.png" width="200" alt="Mökki"></td>
   </tr>
 </table>
 
