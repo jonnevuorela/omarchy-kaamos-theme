@@ -14,7 +14,7 @@ MID = (94, 102, 216)
 DIM = (34, 38, 70)
 
 ROWS = 46
-COLS = round(ROWS * 3.438)  # -> 16:9 once cell metrics are applied
+COLS = round(ROWS * (16 / 9) / 0.4996)  # cell aspect so the grid is true 16:9
 
 BOX = {(1, 0): "\u2500", (-1, 0): "\u2500", (0, 1): "\u2502", (0, -1): "\u2502",
        (1, 1): "\u2572", (-1, -1): "\u2572", (1, -1): "\u2571", (-1, 1): "\u2571"}
@@ -41,11 +41,16 @@ def put(g, r, c, ch, col):
 def draw_grid(grid, fname):
     cols = max(len(r) for r in grid)
     rows = len(grid)
-    size = min((W * 0.995) / (cols * 0.6021), (H * 0.995) / (rows * 1.1645))
-    font = ImageFont.truetype(FONT_PATH, max(8, int(round(size))))
-    cw = font.getlength("M") * 0.955
-    asc, desc = font.getmetrics()
-    lh = (asc + desc) * 0.97
+    size = min(W / (cols * 0.6021), H / (rows * 1.1645))
+    for _ in range(4):
+        font = ImageFont.truetype(FONT_PATH, max(8, int(round(size))))
+        cw = font.getlength("M")
+        asc, desc = font.getmetrics()
+        lh = asc + desc
+        scale = min(W / (cols * cw), H / (rows * lh))
+        if abs(scale - 1) < 0.0015:
+            break
+        size *= scale
     left = (W - cols * cw) / 2
     top = (H - rows * lh) / 2
     img = Image.new("RGB", (W, H), (0, 0, 0))
@@ -57,7 +62,7 @@ def draw_grid(grid, fname):
                 continue
             d.text((round(left + c * cw), y), ch, font=font, fill=col)
     img.save(f"{OUT}/{fname}")
-    print(f"wrote {fname}  {cols}x{rows}  size {int(round(size))}")
+    print(f"wrote {fname}  {cols}x{rows}  size {int(round(size))}  span {int(cols * cw)}x{int(rows * lh)}")
 
 
 def stars(g, n, ymax, band=None, seed=0):
@@ -78,7 +83,7 @@ def stars(g, n, ymax, band=None, seed=0):
 
 def aurora():
     g = blank()
-    stars(g, 620, int(ROWS * 0.85), seed=7)
+    stars(g, 760, ROWS, seed=7)
     for x in range(COLS):
         lobe = 0.5 + 0.5 * math.sin(x * 0.026 + 0.4)
         presence = lobe ** 1.15 * (0.55 + 0.45 * abs(math.sin(x * 0.10 + 0.8)))
@@ -100,7 +105,7 @@ def aurora():
 
 def tunturi():
     g = blank()
-    stars(g, 640, 22, seed=11)
+    stars(g, 640, ROWS, seed=11)
     for base, amp, freq, phase, top, bot, rim in [
         (24, 9.0, 0.020, 0.0, (46, 54, 120), (10, 12, 28), (140, 150, 225)),
         (30, 7.5, 0.028, 1.6, (34, 40, 94), (8, 10, 22), (185, 195, 245)),
