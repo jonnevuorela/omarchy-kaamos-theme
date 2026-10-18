@@ -1,0 +1,168 @@
+#!/bin/bash
+
+# Kaamos Desolate Snowfall Screensaver for Omarchy.
+# Uses ttfx (the TerminalTextEffects engine behind omarchy-screensaver) with
+# custom polar-night snowfall instructions and a full-screen snowfield canvas
+# built around ~/.config/omarchy/branding/screensaver.txt.
+
+CANVAS_FILE="${XDG_RUNTIME_DIR:-/tmp}/kaamos-screensaver-$$.txt"
+
+screensaver_in_focus() {
+  hyprctl activewindow -j | jq -e '.class == "org.omarchy.screensaver"' >/dev/null 2>&1
+}
+
+exit_screensaver() {
+  rm -f "$CANVAS_FILE"
+  hyprctl eval 'hl.config({ cursor = { invisible = false } })' &>/dev/null || hyprctl keyword cursor:invisible false &>/dev/null || true
+  pkill -x ttfx 2>/dev/null
+  pkill -f '[o]rg.omarchy.screensaver' 2>/dev/null
+  exit 0
+}
+
+trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT EXIT
+
+printf '\033]11;rgb:00/00/00\007'  # Pure OLED black background
+
+hyprctl eval 'hl.config({ cursor = { invisible = true } })' &>/dev/null || hyprctl keyword cursor:invisible true &>/dev/null
+
+tty=$(tty 2>/dev/null)
+
+wait_for_terminal_resize() {
+  local deadline=$((SECONDS + 2))
+  while ((SECONDS < deadline)) && [[ $(stty size 2>/dev/null) == "24 80" ]]; do
+    sleep 0.02
+  done
+}
+
+# Build a full-terminal canvas combining a desolate Kaamos snowfield + tunturi
+# horizon with the user's ~/.config/omarchy/branding/screensaver.txt centered,
+# so ttfx animates snowfall across the entire screen rather than a narrow box.
+build_kaamos_canvas() {
+  local size rows cols
+  size=$(stty size 2>/dev/null || echo "48 160")
+  rows=${size%% *}
+  cols=${size##* }
+  python3 - "$rows" "$cols" "$HOME/.config/omarchy/branding/screensaver.txt" "$CANVAS_FILE" <<'PY'
+import math, os, random, sys
+
+rows = max(24, int(sys.argv[1]) - 2)
+cols = max(60, int(sys.argv[2]) - 2)
+logo_path = sys.argv[3]
+out_path = sys.argv[4]
+
+logo_lines = []
+if os.path.isfile(logo_path):
+    with open(logo_path, "r", encoding="utf-8") as f:
+        logo_lines = [line.rstrip("\r\n") for line in f]
+
+grid = [[" " for _ in range(cols)] for _ in range(rows)]
+rng = random.Random()
+
+# 1. Desolate falling snow particles scattered across the polar night sky
+for r in range(rows - 4):
+    for c in range(cols):
+        p = rng.random()
+        if p < 0.018:
+            grid[r][c] = "·"
+        elif p < 0.026:
+            grid[r][c] = "."
+        elif p < 0.029:
+            grid[r][c] = "░"
+
+# 2. Subtle wind-swept snowdrift / tunturi horizon along the bottom edge
+phase = rng.uniform(0, 6.28)
+for c in range(cols):
+    h = int(round(2.2 + 1.4 * math.sin(c * 0.055 + phase) + 0.7 * math.cos(c * 0.13)))
+    top_r = max(0, rows - h)
+    for r in range(top_r, rows):
+        grid[r][c] = "▒" if r == top_r else "░"
+
+# 3. Center the branding emblem (screensaver.txt) with a clean dark breathing halo
+if logo_lines:
+    lh = len(logo_lines)
+    lw = max((len(line) for line in logo_lines), default=0)
+    r0 = max(0, (rows - lh) // 2 - 1)
+    c0 = max(0, (cols - lw) // 2)
+    # Clear a soft halo around the emblem so it reads cleanly amidst the snowfall
+    for r in range(max(0, r0 - 2), min(rows - 4, r0 + lh + 2)):
+        for c in range(max(0, c0 - 4), min(cols, c0 + lw + 4)):
+            grid[r][c] = " "
+    for dr, line in enumerate(logo_lines):
+        rr = r0 + dr
+        if 0 <= rr < rows:
+            for dc, ch in enumerate(line):
+                cc = c0 + dc
+                if 0 <= cc < cols and ch != " ":
+                    grid[rr][cc] = ch
+
+with open(out_path, "w", encoding="utf-8") as f:
+    f.write("\n".join("".join(row) for row in grid) + "\n")
+PY
+}
+
+run_kaamos_ttfx() {
+  local mode=$((RANDOM % 4))
+  local common=(
+    -i "$CANVAS_FILE"
+    --frame-rate 120
+    --canvas-width 0
+    --canvas-height 0
+    --reuse-canvas
+    --anchor-canvas c
+    --anchor-text c
+    --no-eol
+    --no-restore-cursor
+  )
+
+  case $mode in
+  0 | 1)
+    # Desolate Kaamos snowfall: slow, floating flakes in polar indigo & frost white
+    ttfx "${common[@]}" rain \
+      --rain-symbols "·" "." "░" "▒" "*" \
+      --rain-colors 181c36 252c54 36407a 4f5bd5 7a86e0 b4bef2 e2e7fc \
+      --movement-speed 0.09-0.22 \
+      --movement-easing out_sine \
+      --final-gradient-stops 1a1e3a 36407a 4f5bd5 d8e0fc 4f5bd5 14182e \
+      --final-gradient-steps 16 \
+      --final-gradient-direction vertical &
+    ;;
+  2)
+    # Polar night blizzard mist rolling across the whole canvas
+    ttfx "${common[@]}" smoke \
+      --starting-color 0d1020 \
+      --smoke-symbols "·" "░" "▒" "▓" "▒" "░" \
+      --smoke-gradient-stops 0d1020 1e2448 3b4688 4f5bd5 9aa4ec \
+      --use-whole-canvas \
+      --final-gradient-stops 181c36 4f5bd5 d8e0fc 4f5bd5 14182e \
+      --final-gradient-steps 16 \
+      --final-gradient-direction diagonal &
+    ;;
+  3)
+    # Slow downward snow drift settling into place
+    ttfx "${common[@]}" pour \
+      --pour-direction down \
+      --pour-speed 3 \
+      --movement-speed-range 0.10-0.24 \
+      --gap 2 \
+      --starting-color d8e0fc \
+      --final-gradient-stops d8e0fc 7a86e0 4f5bd5 222850 12152a \
+      --final-gradient-steps 16 \
+      --final-gradient-frames 8 \
+      --final-gradient-direction vertical \
+      --movement-easing out_sine &
+    ;;
+  esac
+}
+
+wait_for_terminal_resize
+
+while true; do
+  build_kaamos_canvas
+  run_kaamos_ttfx
+
+  while pgrep -t "${tty#/dev/}" -x ttfx >/dev/null; do
+    if read -n1 -t 1 || ! screensaver_in_focus; then
+      exit_screensaver
+    fi
+  done
+done

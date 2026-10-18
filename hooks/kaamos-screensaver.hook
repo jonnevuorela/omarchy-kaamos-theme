@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Kaamos theme hook: apply the arctic arch screensaver art when Kaamos is set,
-# and restore the stock Omarchy wordmark when switching to any other theme.
+# Kaamos theme hook: install the real-time Kaamos desolate snowfall screensaver
+# (and arctic arch branding) when Kaamos is set, and restore the stock Omarchy
+# screensaver when switching to any other theme.
 #
 # Install with:
 #   omarchy hook install theme-set hooks/kaamos-screensaver.hook
@@ -11,16 +12,33 @@ set -euo pipefail
 THEME_NAME="${1:-}"
 OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
 BRANDING="$HOME/.config/omarchy/branding/screensaver.txt"
-THEME_SCREENSAVER="$HOME/.local/state/omarchy/current/theme/screensaver.txt"
+THEME_DIR="$HOME/.local/state/omarchy/current/theme"
+FALLBACK_DIR="$HOME/.config/omarchy/themes/kaamos"
+[[ -f $THEME_DIR/bin/kaamos-screensaver && -f $THEME_DIR/bin/omarchy-launch-screensaver ]] || THEME_DIR="$FALLBACK_DIR"
+
+THEME_SCREENSAVER="$THEME_DIR/screensaver.txt"
+THEME_BIN="$THEME_DIR/bin/kaamos-screensaver"
+THEME_LAUNCH_BIN="$THEME_DIR/bin/omarchy-launch-screensaver"
+LOCAL_BIN_TARGET="$HOME/.local/bin/omarchy-screensaver"
+LOCAL_LAUNCH_TARGET="$HOME/.local/bin/omarchy-launch-screensaver"
 MARKER="$HOME/.local/state/omarchy/kaamos-screensaver.hook"
 
-mkdir -p "$(dirname "$BRANDING")" "$(dirname "$MARKER")"
+mkdir -p "$(dirname "$BRANDING")" "$(dirname "$MARKER")" "$HOME/.local/bin"
 
 if [[ $THEME_NAME == "kaamos" ]]; then
-  [[ -f $THEME_SCREENSAVER ]] || exit 0
-  cp -- "$THEME_SCREENSAVER" "$BRANDING"
+  if [[ -f $THEME_SCREENSAVER ]]; then
+    cp -- "$THEME_SCREENSAVER" "$BRANDING"
+  fi
+  if [[ -f $THEME_BIN ]]; then
+    cp -- "$THEME_BIN" "$LOCAL_BIN_TARGET"
+    chmod 755 "$LOCAL_BIN_TARGET"
+  fi
+  if [[ -f $THEME_LAUNCH_BIN ]]; then
+    cp -- "$THEME_LAUNCH_BIN" "$LOCAL_LAUNCH_TARGET"
+    chmod 755 "$LOCAL_LAUNCH_TARGET"
+  fi
   touch "$MARKER"
 elif [[ -f $MARKER ]]; then
   cp -- "$OMARCHY_PATH/logo.txt" "$BRANDING"
-  rm -f "$MARKER"
+  rm -f "$LOCAL_BIN_TARGET" "$LOCAL_LAUNCH_TARGET" "$MARKER"
 fi
